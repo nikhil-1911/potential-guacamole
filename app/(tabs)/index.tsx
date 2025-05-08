@@ -1,74 +1,92 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, Text, View } from "react-native";
+import { Link } from "expo-router";
+import { images } from "@/constants/images";
+import ScrollView = Animated.ScrollView;
+import { icons } from "@/constants/icons";
+import SearchBar from "../../components/SearchBar";
+import { useRouter } from "expo-router";
+import { useFetch } from "@/services/useFetch";
+import { fetchMovies, fetchTrendingMovies } from "@/services/api";
+import React, { useEffect, useState } from "react";
+import MovieCard from "@/components/MovieCard";
+import 'react-native-url-polyfill/auto'
+import { getAuth } from "@firebase/auth";
+import { useAuth } from "../AuthContext";
+import HeroCarousel from "@/components/HeroCarousel";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function Index() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function HomeScreen() {
+  const fetchMoviesQuery = React.useCallback(() => fetchMovies({ query: searchQuery }), [searchQuery]);
+  const { data: movies, loading, error, refetch: loadMovies } = useFetch(fetchMoviesQuery);
+
+  const { data: trending } = useFetch(() => fetchTrendingMovies());
+
+  useEffect(() => {
+    console.log("Trending movies:", trending);
+  }, [trending])
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadMovies();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View className="flex-1 bg-primary">
+      <Image source={images.bg} className="absolute w-full z-0" />
+      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+        <Image source={icons.logo1} className="w-20 h-20 mt-20 mb-5 mx-auto" />
+
+        <SearchBar
+          placeholder="Search for a movie"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" className="mt-10 self-center" />
+        ) : error ? (
+          <Text className="text-center text-white">{error.message}</Text>
+        ) : movies?.length === 0 ? (
+          <Text className="text-white text-center mt-10">
+            {searchQuery ? "No movies found." : "Search for a movie above."}
+          </Text>
+        ) : (
+          <>
+            {
+              trending?.length > 0 && searchQuery === "" && (
+                <>
+                  <Text className="text-lg text-white font-bold mt-5 mb-3">
+                    Trending This Week
+                  </Text>
+                  <HeroCarousel movies={trending} />
+                </>
+              )
+            }
+
+            <Text className="text-lg text-white font-bold mt-5 mb-3">
+              {searchQuery ? "Search Results" : "Latest Movies"}
+            </Text>
+            <FlatList
+              data={movies || []} // Fallback to empty array
+              renderItem={({ item }) => <MovieCard {...item} />}
+              keyExtractor={(item) => item.id.toString()}
+              numColumns={3}
+              columnWrapperStyle={{
+                justifyContent: 'flex-start',
+                marginBottom: 10,
+                gap: 20,
+                paddingRight: 5,
+              }}
+              scrollEnabled={false}
+            />
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
