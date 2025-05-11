@@ -10,12 +10,12 @@ import { db } from '@/FirebaseConfig';
 import { useAuth } from '../AuthContext';
 import Toast from 'react-native-toast-message';
 import { checkAchievements } from '@/components/AchievementSystem';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import AchievementPopup from '@/components/AchievementPopup';
 
 const MovieDetails = () => {
     const { user, isEmailVerified } = useAuth();
     const [showUnlock, setShowUnlock] = useState(null);
-    console.log('moviedetails', user);
     const { id } = useLocalSearchParams();
     const { data, loading, error } = useFetch(() => fetchMovieDetails({
         id: id as string,
@@ -25,33 +25,35 @@ const MovieDetails = () => {
 
     const addMovieToList = async () => {
         if (!user) {
-          Toast.show({ type: 'error', text1: 'Please sign in' });
-          return;
+            Toast.show({ type: 'error', text1: 'Please sign in' });
+            return;
         }
-      
+
         try {
-          const movieListRef = doc(db, "moviesappid", user.uid);
-          
-          // 1. Save movie
-          await setDoc(movieListRef, {
-            movieid: arrayUnion(data?.id)
-          }, { merge: true });
-          
-          // 2. Check achievements
-          const newAchievements = await checkAchievements(user.uid);
-          
-          // 3. Show celebration if unlocked
-          if (newAchievements.length > 0) {
-            setShowUnlock(newAchievements[0]);
-          }
-          
-          Toast.show({ type: 'success', text1: 'Added to list' });
-          
+            const movieListRef = doc(db, "moviesappid", user.uid);
+
+            // 1. Save movie
+            await setDoc(movieListRef, {
+                movieid: arrayUnion(data?.id)
+            }, { merge: true });
+
+            // 2. Check achievements
+            const newAchievements = await checkAchievements(user.uid, 'saveMovie');
+
+            // 3. Show celebration if unlocked
+            console.log('newAchievements', newAchievements);
+            if (newAchievements.length > 0) {
+                console.log('newAchievements', newAchievements);
+                setShowUnlock(newAchievements[0]);
+            }
+
+            Toast.show({ type: 'success', text1: 'Added to list' });
+
         } catch (error) {
-          console.error('Save failed:', error);
-          Toast.show({ type: 'error', text1: 'Save failed' });
+            console.error('Save failed:', error);
+            Toast.show({ type: 'error', text1: 'Save failed' });
         }
-      };
+    };
 
     if (loading) return (
         <View className="flex-1 bg-primary justify-center items-center">
@@ -104,6 +106,10 @@ const MovieDetails = () => {
                     </View>
                 </View>
             </ScrollView>
+            <AchievementPopup
+                achievement={showUnlock}
+                onClose={() => setShowUnlock(null)}
+            />
         </View>
     )
 }

@@ -22,22 +22,7 @@ export const ACHIEVEMENT_TYPES = {
   }
 };
 
-const getSavedMoviesCount = async (userId) => {
-    try {
-      const userRef = doc(db, "moviesappid", userId); // Note your collection name
-      const docSnap = await getDoc(userRef);
-      
-      if (docSnap.exists()) {
-        return docSnap.data().movieid?.length || 0;
-      }
-      return 0;
-    } catch (error) {
-      console.error("Error counting movies:", error);
-      return 0;
-    }
-  };
-
-  export const checkAchievements = async (userId, actionType = 'saveMovie') => {
+  export const checkAchievements = async (userId, actionType: string) => {
     const movieRef = doc(db, "moviesappid", userId);
     const newAchievements = [];
   
@@ -86,5 +71,5 @@ const getSavedMoviesCount = async (userId) => {
       });
     }
   
-    return [];
+    return newAchievements;
   };
