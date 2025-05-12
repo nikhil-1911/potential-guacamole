@@ -4,7 +4,7 @@ import { images } from '@/constants/images';
 import { fetchMovieDetails } from '@/services/api';
 import { useFetch } from '@/services/useFetch';
 import { useLocalSearchParams } from 'expo-router';
-import { View, Text, Image, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native'
 import { doc, updateDoc, arrayUnion, arrayRemove, setDoc } from "firebase/firestore";
 import { db } from '@/FirebaseConfig';
 import { useAuth } from '../AuthContext';
@@ -16,6 +16,7 @@ import AchievementPopup from '@/components/AchievementPopup';
 const MovieDetails = () => {
     const { user, isEmailVerified } = useAuth();
     const [showUnlock, setShowUnlock] = useState(null);
+    const [loadingSave, setLoadingSave] = useState(false);
     const { id } = useLocalSearchParams();
     const { data, loading, error } = useFetch(() => fetchMovieDetails({
         id: id as string,
@@ -30,20 +31,17 @@ const MovieDetails = () => {
         }
 
         try {
+            setLoadingSave(true); // Start loading
+
             const movieListRef = doc(db, "moviesappid", user.uid);
 
-            // 1. Save movie
             await setDoc(movieListRef, {
                 movieid: arrayUnion(data?.id)
             }, { merge: true });
 
-            // 2. Check achievements
             const newAchievements = await checkAchievements(user.uid, 'saveMovie');
 
-            // 3. Show celebration if unlocked
-            console.log('newAchievements', newAchievements);
             if (newAchievements.length > 0) {
-                console.log('newAchievements', newAchievements);
                 setShowUnlock(newAchievements[0]);
             }
 
@@ -52,6 +50,8 @@ const MovieDetails = () => {
         } catch (error) {
             console.error('Save failed:', error);
             Toast.show({ type: 'error', text1: 'Save failed' });
+        } finally {
+            setLoadingSave(false); // Stop loading
         }
     };
 
@@ -77,7 +77,14 @@ const MovieDetails = () => {
                     <View className='flex-col items-start justify-start mt-5'>
                         <View className='flex-row iems-center items-end justify-between w-full'>
                             <Text className='text-xl text-white font-bold'>{data?.title}</Text>
-                            <Text className='text-lg text-white' onPress={addMovieToList}>Add to List +</Text>
+                            {/* <Text className='text-lg text-white' onPress={addMovieToList}>Add to List +</Text> */}
+                            <TouchableOpacity onPress={addMovieToList} disabled={loadingSave}>
+                                {loadingSave ? (
+                                    <ActivityIndicator size="small" color="white" />
+                                ) : (
+                                    <Text className='text-lg text-white'>Add to List +</Text>
+                                )}
+                            </TouchableOpacity>
                         </View>
 
                         <Text className='text-sm text-light-300 font-medium mt-1'>{data?.release_date?.split('-')[0]} {data?.runtime + 'm'}</Text>

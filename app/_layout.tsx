@@ -15,6 +15,10 @@ export default function RootLayout() {
           name="movies/[id]"
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="MovieTasteQuiz"
+          options={{ headerShown: false, presentation: 'modal' }} // or fullScreenModal
+        />
       </Stack>
       <Toast
         position='bottom'
