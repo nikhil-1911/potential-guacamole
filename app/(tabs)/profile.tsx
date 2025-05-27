@@ -289,13 +289,6 @@ const Profile = () => {
         }, [user])
     );
 
-    // useEffect(() => {
-    //     console.log('3', hasCompletedQuiz)
-    //     if (!loading && user && isEmailVerified && !hasCompletedQuiz) {
-    //         router.replace('/MovieTasteQuiz'); // Use replace so back button doesn't return to profile
-    //     }
-    // }, [loading, user, isEmailVerified, hasCompletedQuiz]);
-
     const handleQuizLaunch = () => {
     router.push('/MovieTasteQuiz');
   };

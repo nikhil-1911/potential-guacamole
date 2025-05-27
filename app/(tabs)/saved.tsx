@@ -14,13 +14,21 @@ const Saved = () => {
     const { user, isEmailVerified } = useAuth();
     const [loading, setLoading] = useState(true);
     const docRef = user ? doc(db, "moviesappid", user?.uid) : null;
-    console.log('savedloaded1');
+    console.log('savedloaded1', user);
     const [movies, setMovies] = useState<any[]>([]);
 
     useFocusEffect(
         React.useCallback(() => {
             const getMovies = async () => {
+                if (!user?.uid) {
+                    setMovies([]);
+                    setLoading(false);
+                    return;
+                }
+
+                const docRef = doc(db, "moviesappid", user.uid);
                 setLoading(true);
+
                 try {
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
@@ -31,25 +39,30 @@ const Saved = () => {
                                     return await fetchMovieDetails({ id: id as string });
                                 })
                             );
-                            const flattenedMovies = savedMovies.flat();
-                            setMovies(flattenedMovies);
+                            setMovies(savedMovies.flat());
                         } else {
                             setMovies([]);
                         }
                     } else {
                         console.log("No such document!");
+                        setMovies([]);
                     }
                 } catch (error) {
                     console.error("Error fetching saved movies:", error);
+                    setMovies([]);
                 }
+
                 setLoading(false);
             };
+
             getMovies();
+
             return () => {
                 console.log("screen unfocused");
             };
         }, [user?.uid])
     );
+
 
     return (
         <View className="flex-1 bg-primary">
